@@ -28,7 +28,7 @@ def model_segmentation(model_name, smoothing=True, sm_kernel=(7,7)):
         if model_name_split[0]=='YOLO':
             # Get the version of the yolo
             num_epoch = model_name_split[-1]
-            ck_name = path_pre_trained+'yolov8n-seg{}-0_001.pt'.format(num_epoch)
+            ck_name = path_pre_trained+'yolov8n-seg{}-0_005.pt'.format(num_epoch)
             
             for i in path:
                 # Initialization

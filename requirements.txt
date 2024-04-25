@@ -1,0 +1,5 @@
+numpy==1.25.2
+tensorflow==2.15.0
+torch==2.2.1
+torchvision==0.17.1
+ultralytics==8.1.34
