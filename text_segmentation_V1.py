@@ -65,5 +65,5 @@ def model_segmentation(model_name,
             conf_ = []
             res[0] = [[]]
                 
-        return pred, bbx_, conf_, res[0]
+        return pred, bbx_, conf_, used_id, res[0]
     return pred

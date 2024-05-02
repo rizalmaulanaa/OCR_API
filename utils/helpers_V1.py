@@ -168,14 +168,14 @@ def get_class_pred(result, list_class, threshold=5):
     
     return y_pred, used_id
 
-def write_segmentation(img_path, used_id, result, inverted=False, result_segmentation=[]):
+def get_segmentation(img_full, used_id, result, inverted=False):
     # Check if there are segmentation
     if result.masks is not None:
         # Get the segmentation result
         y_pred = result.masks.data
 
         # Read original image
-        img_full = cv.imread(img_path, cv.IMREAD_GRAYSCALE)
+        img_full = cv.cvtColor(img_full, cv.COLOR_BGR2GRAY) 
         img_full_shape = img_full.shape
 
         # Resize the segmentation result into original shape
@@ -191,13 +191,14 @@ def write_segmentation(img_path, used_id, result, inverted=False, result_segment
         # Select only 1 channel
         if len(im_temp.shape)==3:
             im_temp = im_temp[:,:,0]
-
+        print(im_temp.shape, img_full.shape)
         # Inverted the image and dot product with segmentation result
         if inverted:
             temp_seg = im_temp * ((255) - img_full)
         else:
             temp_seg = im_temp * ((255) - img_full)
             temp_seg = (255) - temp_seg
+
         temp_seg = temp_seg.astype('uint8')
         temp_seg_blur = cv.GaussianBlur(temp_seg,(7,7),0)
 
@@ -211,32 +212,8 @@ def write_segmentation(img_path, used_id, result, inverted=False, result_segment
         im_th = cv.threshold(temp_seg_blur, 127, 255, cv.THRESH_OTSU)[1]
         im_adaptive_th = cv.medianBlur(im_th-im_adaptive,3)
         im_adaptive_th = cv.threshold(im_adaptive_th, 127, 255, cv.THRESH_BINARY)[1]
-        # im_adaptive_th[im_adaptive_th==1] = 0
 
-        file_name = img_path.split('/')[-1]
-
-        # Create new folder
-        if 'clean' in result_segmentation:
-            path = config_dict['path_saved'] + 'seg_clean/'
-            if not os.path.exists(path):
-                os.mkdir(path)
-
-            cv.imwrite(path+file_name, im_adaptive_th)
-
-        if 'raw' in result_segmentation:
-            path = config_dict['path_saved'] + 'seg_recog/'
-            if not os.path.exists(path):
-                os.mkdir(path)
-
-            cv.imwrite(path+file_name, temp_seg)
-
-        if 'inverted' in result_segmentation:
-            inverted_seg = (255) - im_adaptive_th
-            path = config_dict['path_saved'] + 'seg_inverted/'
-            if not os.path.exists(path):
-                os.mkdir(path)
-
-            cv.imwrite(path+file_name, inverted_seg)
+        return im_adaptive_th
 
 def get_probability(output, pred):
     prob = nnf.softmax(output, dim=1)
@@ -246,6 +223,20 @@ def get_probability(output, pred):
     prob_list = [round(i, 4) for i in prob_list]
     return prob_list
 
-
 def load_image_into_numpy_array(data):
     return np.array(Image.open(BytesIO(data)))
+
+def get_status_image(img):
+    img = cv.cvtColor(img, cv.COLOR_BGR2GRAY) 
+    img = cv.threshold(img, 127, 255, cv.THRESH_BINARY | cv.THRESH_OTSU)[1]
+    id_, count = np.unique(img, return_counts=True)
+    count_dict = {k:v for k,v in zip(id_,count)}
+    
+    if count_dict[0] >= count_dict[255]:
+        # black background
+        flags = True
+    else:
+        # white background
+        flags = False
+    
+    return flags

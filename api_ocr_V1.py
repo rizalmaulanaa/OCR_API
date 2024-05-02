@@ -21,7 +21,7 @@ importlib.reload(OCR_API)
 from OCR_API.utils.helpers_V1 import *
 from OCR_API.config import config_dict
 from OCR_API.text_detection import model_detection
-from OCR_API.text_recognition import model_recognition
+from OCR_API.text_recognition_V1 import model_recognition
 from OCR_API.text_segmentation_V1 import model_segmentation
 
 
@@ -220,7 +220,7 @@ def prediction_seg_recog(data:text_seg_recog_class):
     return y_pred_list
 
 
-# REVAMP
+# REVAMP ==============================================================================================
 
 def prediction_seg(image,
                    file_name,
@@ -230,17 +230,97 @@ def prediction_seg(image,
 
     # Initialize the model
     md = model_segmentation(model_name, smoothing=smoothing, sm_kernel=sm_kernel)
+
+    # Get status
+    flag_inverted = get_status_image(image)
     
     # Inverted Image
     image = preprocessing_image(image, 
-                                inverted=True, 
+                                inverted=flag_inverted, 
                                 normalize=False, 
                                 smoothing=smoothing, 
                                 sm_kernel=sm_kernel)
 
     # Prediction
-    y_pred, bbx_list, conf_list, _ = md(image)
+    y_pred, bbx_list, conf_list, _, _ = md(image)
 
+    # Create the json format 
+    file_names = file_name.split('/')[-1]
+    pred = re.findall(r'[0-9A-zA-Z]', y_pred)
+    img_shape = list(image.shape)
+
+    data_json = [{
+        'name': file_names,
+        'prediction': pred,
+        'conf': conf_list,
+        'bbx': bbx_list,
+        'imageShape': img_shape
+    }]
+    return data_json
+
+def prediction_recog(image,
+                     file_name,
+                     model_name='YOLO_20-ocr', 
+                     smoothing=True, 
+                     sm_kernel=(3,3)):
+    
+    # Get status
+    flag_inverted = get_status_image(image)
+
+    # Inverted Image
+    image_ = preprocessing_image(image, 
+                                 inverted=flag_inverted, 
+                                 normalize=False, 
+                                 smoothing=smoothing, 
+                                 sm_kernel=sm_kernel)
+
+    # Initialize the model recognition
+    md_recog = model_recognition(model_name=model_name, preprocessing=False, smoothing=True, sm_kernel=sm_kernel)
+
+    y_pred, conf_list, bbx_list = md_recog(image_)
+    
+    # Create the json format 
+    file_names = file_name.split('/')[-1]
+    pred = re.findall(r'[0-9A-zA-Z]', y_pred)
+    img_shape = list(image.shape)
+
+    data_json = [{
+        'name': file_names,
+        'prediction': pred,
+        'conf': conf_list,
+        'bbx': bbx_list,
+        'imageShape': img_shape
+    }]
+    return data_json
+
+def prediction_seg_recog(image,
+                     file_name,
+                     model_name='YOLO_SEG_80', 
+                     smoothing=True, 
+                     sm_kernel=(3,3)):
+    
+    # Initialize the model segmentation
+    md_seg = model_segmentation(model_name, smoothing=smoothing, sm_kernel=sm_kernel)
+    
+    # Get status
+    flag_inverted = get_status_image(image)
+
+    # Inverted Image
+    image_ = preprocessing_image(image, 
+                                 inverted=flag_inverted, 
+                                 normalize=False, 
+                                 smoothing=smoothing, 
+                                 sm_kernel=sm_kernel)
+
+    # Prediction segmentation
+    _, bbx_list, _, used_id, result = md_seg(image_)
+    img_seg = get_segmentation(image_, used_id, result, inverted=True)
+
+    # Initialize the model recognition
+    md_recog = model_recognition(model_name='MORAN', preprocessing=False, smoothing=True, sm_kernel=sm_kernel)
+
+    y_pred, conf_list, _ = md_recog(img_seg)
+    
     # Create the json format 
     file_names = file_name.split('/')[-1]
     pred = re.findall(r'[0-9A-zA-Z]', y_pred)
@@ -264,20 +344,13 @@ async def segmentation_async(image: UploadFile = File(...)):
     
     return json_file
 
-# Text recognition endpoint
-@app.post("/text_recognition")
-async def text_recog(data: text_recog_class):
-    return prediction_recog(data)
-
-# Text detection endpoint
-@app.post("/text_detection")
-async def text_detect(data: text_detect_class):
-    return prediction_detect(data)
-
-# Text segmentation and recognition endpoint
-@app.post("/text_segment_recog")
-async def text_segment_recog(data: text_seg_recog_class):
-    return prediction_seg_recog(data)   
+@app.post("/recognition")
+async def recognition_async(image: UploadFile = File(...)):
+    file_name = image.filename
+    image = load_image_into_numpy_array(await image.read())
+    json_file = prediction_recog(image, file_name)
+    
+    return json_file
 
 if __name__ == "__main__":
-    uvicorn.run("api_ocr_V1:app", host="0.0.0.0", port=2803, workers = 4)
+    uvicorn.run("api_ocr_V1:app", host="0.0.0.0", port=2804, workers = 4)

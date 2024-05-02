@@ -60,12 +60,10 @@ def prediction_recog(data: text_recog_class):
     md = model_recognition(model_name, smoothing=smoothing, sm_kernel=sm_kernel)
     # Prediction
     y_pred, cls = md(file_path)
-
+    
     # Create the json format 
     for path_file, pred, prob in zip(file_path, y_pred, cls):
         file_names = path_file.split('/')[-1]
-
-        prob = get_probability(prob, pred)
         pred = re.findall(r'[0-9A-zA-Z]', pred)
 
         data_json = {
@@ -135,7 +133,7 @@ def prediction_seg_recog(data:text_seg_recog_class):
     # Initialize the model
     md_seg = model_segmentation(model_seg)
     # Prediction
-    _, used_channel, results = md_seg(file_path)
+    _, _, _, results, used_channel = md_seg(file_path)
 
     # Create new folder
     if 'clean' in result_segmentation:
@@ -246,7 +244,7 @@ def prediction_seg(data: text_seg_class):
     # Initialize the model
     md = model_segmentation(model_name, smoothing=smoothing, sm_kernel=sm_kernel)
     # Prediction
-    y_pred, bbx_list, conf_list, _ = md(file_path)
+    y_pred, bbx_list, conf_list, _, _ = md(file_path)
 
     # Create the json format 
     for path_file, pred, bbx, conf in zip(file_path, y_pred, bbx_list, conf_list):

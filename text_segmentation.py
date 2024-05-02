@@ -24,11 +24,12 @@ def model_segmentation(model_name, smoothing=True, sm_kernel=(7,7)):
         bbx_list = []
         conf_list = []
         result_list = []
+        used_id_list = []
 
         if model_name_split[0]=='YOLO':
             # Get the version of the yolo
             num_epoch = model_name_split[-1]
-            ck_name = path_pre_trained+'yolov8n-seg{}-0_005.pt'.format(num_epoch)
+            ck_name = path_pre_trained+'yolov8n-seg{}.pt'.format(num_epoch)
             
             for i in path:
                 # Initialization
@@ -43,6 +44,7 @@ def model_segmentation(model_name, smoothing=True, sm_kernel=(7,7)):
                 bbx_list.append(bbx_)
                 conf_list.append(conf_)
                 result_list.append(res[0])
+                used_id_list.append(used_id)
         
         elif model_name_split[0]=='MORN':
             recognizer = Recognizer()
@@ -74,6 +76,7 @@ def model_segmentation(model_name, smoothing=True, sm_kernel=(7,7)):
                 bbx_list.append(bbx_)
                 conf_list.append(conf_)
                 result_list.append(res[0])
+                used_id_list.append(used_id)
                 
-        return y_pred, bbx_list, conf_list, result_list
+        return y_pred, bbx_list, conf_list, result_list, used_id_list
     return pred

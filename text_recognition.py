@@ -30,6 +30,7 @@ def model_recognition(model_name, smoothing=True, sm_kernel=(11,11)):
     def pred(path):
         y_pred, cls = [], []
         path_pre_trained = config_dict['path_pretrain']
+        model_name_split = model_name.split('_')
 
         # Using the model tesseract
         if model_name=='EasyOCR':
@@ -83,25 +84,33 @@ def model_recognition(model_name, smoothing=True, sm_kernel=(11,11)):
             # Prediction
             for img in img_list:
                 out = recognizer.process(img)
+                prob = get_probability(out[-1], out[0])
                 y_pred.append(out[0])
-                cls.append(out[-1])
+                cls.append(prob)
 
         # Using the model YOLO
-        elif model_name=='YOLO':
-            ck_name = path_pre_trained+'best.pt' # best
+        elif model_name_split[0]=='YOLO':
+            # Get the version of the yolo
+            num_epoch = model_name_split[-1]
+            ck_name = path_pre_trained+'yolov8m-{}.pt'.format(num_epoch)
             
             for i in path:
                 # Initialize the model
                 model = YOLO(ck_name)
                 # Prediction
-                result = model(i)[0]
+                res = model(i)
 
                 # Get the classification result
-                cls_temp = [str(int(i)) for i in result.boxes.cls.tolist()]
-                cls_ = {k:i.tolist()[0] for k, (i, j) in enumerate(zip(result.boxes.xywh, result.boxes.cls))}
-                cls_ = dict(sorted(cls_.items(), key=lambda item: item[1]))
-                y_temp = ''.join([cls_temp[i] for i in cls_.keys()])
-                y_pred.append(y_temp)
+                pred, used_id = get_class_pred(res[0], model.names)
+                conf_ = [round(i,4) for i in res[0].boxes.conf[used_id].tolist()]
+                bbx_ = [i for i in res[0].boxes.xywh[used_id].to(torch.int).tolist()]
+                bbx_ = sorted(bbx_, key = lambda elem: elem[0]) 
+                cls.append(conf_)
+                # cls_temp = [str(int(i)) for i in result.boxes.cls.tolist()]
+                # cls_ = {k:i.tolist()[0] for k, (i, j) in enumerate(zip(result.boxes.xywh, result.boxes.cls))}
+                # cls_ = dict(sorted(cls_.items(), key=lambda item: item[1]))
+                # y_temp = ''.join([cls_temp[i] for i in cls_.keys()])
+                y_pred.append(pred)
 
         # Using the model MORN + YOLO
         elif model_name=='MORN_YOLO':
@@ -131,6 +140,9 @@ def model_recognition(model_name, smoothing=True, sm_kernel=(11,11)):
                 cls_ = dict(sorted(cls_.items(), key=lambda item: item[1]))
                 y_temp = ''.join([cls_temp[i] for i in cls_.keys()])
                 y_pred.append(y_temp)
+
+        if len(cls) == 0:
+            cls = [[0.0]*len(i) for i in y_pred]
 
         return y_pred, cls
     return pred
