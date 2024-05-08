@@ -119,52 +119,99 @@ def receive_image_data_url(image_data_url, type_):
     with open(path+'captured_image.png', 'wb') as f:
         f.write(binary_data)
 
+def level_split(dict_cls_y, threshold=20):
+    all_lvl = []
+    num = 0
+
+    while True:
+        # Find min value
+        cls_y, full_cls = {}, {}
+        min_val = min([int(i) for i in dict_cls_y.values()])
+
+        for k, v in dict_cls_y.items():
+            temp = int(v)
+
+            # If y axis is still on the threshold
+            if (temp - min_val) > threshold:
+                cls_y[k] = temp
+            else:
+                full_cls[k] = temp
+        
+        # Check if all index got assigned
+        if len(cls_y)==0 or num>=4:
+            all_lvl.append(full_cls)
+            break
+        else:
+            all_lvl.append(cls_y)
+            dict_cls_y = full_cls
+            num += 1
+
+    return [i for i in reversed(all_lvl)]
+
+
 def get_class_pred(result, list_class, threshold=5):
-    # Get all channel number
-    list_id = [i for i in range(len(result.boxes.xyxy))]
-    not_used_data = []
-    used_data = []
-    bbx = []
+    if len(result.boxes.conf) > 0:
+        # Get all channel number
+        list_id = [i for i in range(len(result.boxes.xyxy))]
+        not_used_data = []
+        used_data = []
+        bbx = []
 
-    # Retrive YOLO result
-    boxes_xyxy = result.boxes.xyxy
-    boxes_xywh = result.boxes.xywh
-    boxes_conf = result.boxes.conf
-    boxes_cls = result.boxes.cls
+        # Retrive YOLO result
+        boxes_xyxy = result.boxes.xyxy
+        boxes_xywh = result.boxes.xywh
+        boxes_conf = result.boxes.conf
+        boxes_cls = result.boxes.cls
 
-    for k, (bbx, prob) in enumerate(zip(boxes_xyxy, boxes_conf)):
-        find_id = [i for i in range(len(boxes_xyxy)) 
-                        if i!=k and i not in not_used_data and i not in used_data]
+        for k, (bbx, prob) in enumerate(zip(boxes_xyxy, boxes_conf)):
+            find_id = [i for i in range(len(boxes_xyxy)) 
+                            if i!=k and i not in not_used_data and i not in used_data]
 
-        # Get bounding box coordinate
-        x = int(bbx[0])
-        y = int(bbx[1])
-        w = int(bbx[2])
-        h = int(bbx[3])
-
-        for k_i, i, prob_i in zip(find_id, boxes_xyxy[find_id], boxes_conf[find_id]):
             # Get bounding box coordinate
-            x_i = int(i[0])
-            y_i = int(i[1])
-            w_i = int(i[2])
-            h_i = int(i[3])
-            
-            # Check if bounding box have a similar coordinate, if between the coordinate only have 5 pixel then its the same bounding box
-            if abs(x-x_i) <= threshold and abs(y-y_i) <= threshold and abs(w-w_i) <= threshold and abs(h-h_i) <= threshold:
-                # Get the best probability of the class 
-                if prob>prob_i:
-                    used_data.append(k)
-                    not_used_data.append(k_i)
-                else:
-                    used_data.append(k_i)
-                    not_used_data.append(k)
+            x = int(bbx[0])
+            y = int(bbx[1])
+            w = int(bbx[2])
+            h = int(bbx[3])
 
-    # Get the classification result
-    used_id = [i for i in list_id if i not in not_used_data]
-    cls_temp = [int(i) for i in boxes_cls[used_id].tolist()]
-    cls_ = {k:i.tolist()[0] for k, (i, j) in enumerate(zip(boxes_xywh[used_id], boxes_cls[used_id]))}
-    cls_ = dict(sorted(cls_.items(), key=lambda item: item[1]))
-    y_pred = ''.join([list_class[cls_temp[i]] for i in cls_.keys()])
+            for k_i, i, prob_i in zip(find_id, boxes_xyxy[find_id], boxes_conf[find_id]):
+                # Get bounding box coordinate
+                x_i = int(i[0])
+                y_i = int(i[1])
+                w_i = int(i[2])
+                h_i = int(i[3])
+                
+                # Check if bounding box have a similar coordinate, if between the coordinate only have 5 pixel then its the same bounding box
+                if abs(x-x_i) <= threshold and abs(y-y_i) <= threshold and abs(w-w_i) <= threshold and abs(h-h_i) <= threshold:
+                    # Get the best probability of the class 
+                    if prob>prob_i:
+                        used_data.append(k)
+                        not_used_data.append(k_i)
+                    else:
+                        used_data.append(k_i)
+                        not_used_data.append(k)
+
+        # Get the classification result
+        used_id = [i for i in list_id if i not in not_used_data]
+        cls_temp = [int(i) for i in boxes_cls[used_id].tolist()]
+        cls_ = {k:i.tolist()[1] for k, i in enumerate(boxes_xywh[used_id])}
+        cls_ = dict(sorted(cls_.items(), key=lambda item: item[1]))
+
+        # level split
+        all_lvl = level_split(cls_)
+        y_pred = []
+
+        for lvl in all_lvl:
+            list_lvl = list(lvl.keys())
+            cls__ = {k:i.tolist()[0] for k, i in enumerate(boxes_xywh[used_id]) if k in list_lvl}
+            cls__ = dict(sorted(cls__.items(), key=lambda item: item[1]))
+            pred = ''.join([list_class[cls_temp[i]] for i in cls__.keys()])
+            y_pred.append(pred)
+
+        y_pred = ' '.join(y_pred)
+
+    else:
+        y_pred = ''
+        used_id = []
     
     return y_pred, used_id
 

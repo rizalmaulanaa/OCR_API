@@ -61,8 +61,10 @@ def model_recognition(model_name, preprocessing=True, smoothing=True, sm_kernel=
             res = model(image)
             y_pred, used_id = get_class_pred(res[0], model.names)
             conf_ = [round(i,4) for i in res[0].boxes.conf[used_id].tolist()]
-            bbx_ = [i for i in res[0].boxes.xywh[used_id].to(torch.int).tolist()]
+            bbx_ = [i for i in res[0].boxes.xywh[used_id].to(torch.float).tolist()]
             bbx_ = sorted(bbx_, key = lambda elem: elem[0]) 
+            bbx_n = [i for i in res[0].boxes.xywhn[used_id].to(torch.float).tolist()]
+            bbx_n = sorted(bbx_n, key = lambda elem: elem[0]) 
 
         if len(conf_) == 0:
             conf_ = [0.0]*len(y_pred)
@@ -70,5 +72,8 @@ def model_recognition(model_name, preprocessing=True, smoothing=True, sm_kernel=
         if len(bbx_) == 0:
             bbx_ = [[0,0,0,0]]
 
-        return y_pred, conf_, bbx_
+        if len(bbx_n) == 0:
+            bbx_ = [[0,0,0,0]]
+
+        return y_pred, conf_, bbx_, bbx_n
     return pred

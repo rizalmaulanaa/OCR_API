@@ -260,7 +260,7 @@ def prediction_seg(image,
 
 def prediction_recog(image,
                      file_name,
-                     model_name='YOLO_20-ocr', 
+                     model_name='YOLO_40-ocr', 
                      smoothing=True, 
                      sm_kernel=(3,3)):
     
@@ -277,7 +277,7 @@ def prediction_recog(image,
     # Initialize the model recognition
     md_recog = model_recognition(model_name=model_name, preprocessing=False, smoothing=True, sm_kernel=sm_kernel)
 
-    y_pred, conf_list, bbx_list = md_recog(image_)
+    y_pred, conf_list, bbx_list, bbx_n_list = md_recog(image_)
     
     # Create the json format 
     file_names = file_name.split('/')[-1]
@@ -289,6 +289,7 @@ def prediction_recog(image,
         'prediction': pred,
         'conf': conf_list,
         'bbx': bbx_list,
+        'bbxN': bbx_n_list,
         'imageShape': img_shape
     }]
     return data_json
