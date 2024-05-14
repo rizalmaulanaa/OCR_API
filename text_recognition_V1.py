@@ -1,4 +1,5 @@
 import sys
+import torch
 import easyocr
 import importlib
 import pytesseract
@@ -7,19 +8,17 @@ from ultralytics import YOLO
 
 sys.path.append("..")
 
-import utils
 import OCR_API
 import crnn_pytorch
 import craft_moran_ocr
 import DigitRecognition
 
-importlib.reload(utils)
 importlib.reload(OCR_API)
 importlib.reload(crnn_pytorch)
 importlib.reload(craft_moran_ocr)
 importlib.reload(DigitRecognition)
 
-from utils.helpers_V1 import *
+from OCR_API.utils.helpers_V1 import *
 from OCR_API.config import config_dict
 from crnn_pytorch.src.predict import *
 from DigitRecognition.process_image import *

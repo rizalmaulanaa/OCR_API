@@ -30,7 +30,8 @@ def read_image(path_name):
 
 def inverted_image(img):
     # Inverted the image
-    img = cv.cvtColor(img, cv.COLOR_BGR2GRAY) 
+    if len(img.shape) == 3:
+        img = cv.cvtColor(img, cv.COLOR_BGR2GRAY) 
     img = np.max(img) - img
     img = cv.cvtColor(img,cv.COLOR_GRAY2RGB)
     return img
@@ -273,17 +274,24 @@ def get_probability(output, pred):
 def load_image_into_numpy_array(data):
     return np.array(Image.open(BytesIO(data)))
 
-def get_status_image(img):
-    img = cv.cvtColor(img, cv.COLOR_BGR2GRAY) 
+def get_status_image(img, flag):
+    if len(img.shape) == 3:
+        img = cv.cvtColor(img, cv.COLOR_BGR2GRAY) 
     img = cv.threshold(img, 127, 255, cv.THRESH_BINARY | cv.THRESH_OTSU)[1]
     id_, count = np.unique(img, return_counts=True)
     count_dict = {k:v for k,v in zip(id_,count)}
     
     if count_dict[0] >= count_dict[255]:
         # black background
-        flags = True
+        if flag:
+            flags = True
+        else:
+            flags = False
     else:
         # white background
-        flags = False
+        if flag:
+            flags = False
+        else:
+            flags = True
     
     return flags

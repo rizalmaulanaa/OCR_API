@@ -14,47 +14,55 @@ from OCR_API.config import config_dict
 from craft_moran_ocr.src.recognizer import Recognizer
 
 
-def model_segmentation(model_name, 
-                       smoothing=True, 
-                       sm_kernel=(7,7)):
+class model_segmentation:
+    def __init__(self, model_name, preprocessing=True, smoothing=True, sm_kernel=(7,7)):
+        super(model_segmentation, self).__init__()
+        self.preprocessing = preprocessing
+        self.smoothing = smoothing
+        self.sm_kernel = sm_kernel
 
-    def pred(image):
         path_pre_trained = config_dict['path_pretrain']
         model_name_split = model_name.split('_')
-
-        # Get the version of the yolo
+        type_ = model_name_split[1].lower()
         num_epoch = model_name_split[-1]
-        ck_name = path_pre_trained+'yolov8n-seg{}.pt'.format(num_epoch)
+        model_file_name = 'yolov8{}-seg{}.pt'.format(type_, num_epoch)
 
-        # Initialization
-        model = YOLO(ck_name)
+        self.ck_name = path_pre_trained + model_file_name
+        self.model_name = model_name_split[0].upper()
 
-        if model_name_split[0]=='YOLO':
+    def prediction(self, image):
+        if self.model_name=='YOLO':
+            # Initialization
+            model = YOLO(self.ck_name)
+
             # Prediction
             res = model(image)
+
             pred, used_id = get_class_pred(res[0], model.names)
             conf_ = [round(i,4) for i in res[0].boxes.conf[used_id].tolist()]
             bbx_ = [i for i in res[0].boxes.xywh[used_id].to(torch.int).tolist()]
             bbx_ = sorted(bbx_, key = lambda elem: elem[0]) 
             bbx_n = [i for i in res[0].boxes.xywhn[used_id].to(torch.float).tolist()]
-            bbx_n = sorted(bbx_n, key = lambda elem: elem[0]) 
+            bbx_n = sorted(bbx_n, key = lambda elem: elem[0])
         
-        elif model_name_split[0]=='MORN':
+        elif self.model_name=='MORN':
             recognizer = Recognizer()
             recognizer.load()
 
             # Preprocessing
-            image = preprocessing_image(image, 
-                                        inverted=False, 
-                                        normalize=False, 
-                                        smoothing=smoothing, 
-                                        sm_kernel=sm_kernel)
-            
-            # Prediction morn
+            if self.preprocessing:
+                image = preprocessing_image(image, 
+                                            inverted=False, 
+                                            normalize=False, 
+                                            smoothing=self.smoothing, 
+                                            sm_kernel=self.sm_kernel)
+                
+            # Prediction MORN
             img_morn = recognizer.process(image, debug=True)[2]
 
-            # Prediction yolo
+            # Prediction YOLO
             res = model(img_morn)
+
             pred, used_id = get_class_pred(res[0], model.names)
             conf_ = [round(i,4) for i in res[0].boxes.conf[used_id].tolist()]
             bbx_ = [i for i in res[0].boxes.xywh[used_id].to(torch.int).tolist()]
@@ -67,6 +75,5 @@ def model_segmentation(model_name,
             bbx_ = []
             conf_ = []
             res[0] = [[]]
-                
+
         return pred, bbx_, bbx_n, conf_, used_id, res[0]
-    return pred

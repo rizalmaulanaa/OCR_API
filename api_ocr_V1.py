@@ -242,7 +242,7 @@ def prediction_seg(image,
                                 sm_kernel=sm_kernel)
 
     # Prediction
-    y_pred, bbx_list, conf_list, _, _ = md(image)
+    y_pred, bbx_list, bbx_n_list, conf_list, _, _ = md(image)
 
     # Create the json format 
     file_names = file_name.split('/')[-1]
@@ -254,6 +254,7 @@ def prediction_seg(image,
         'prediction': pred,
         'conf': conf_list,
         'bbx': bbx_list,
+        'bbxN': bbx_n_list,
         'imageShape': img_shape
     }]
     return data_json
@@ -314,7 +315,7 @@ def prediction_seg_recog(image,
                                  sm_kernel=sm_kernel)
 
     # Prediction segmentation
-    _, bbx_list, _, used_id, result = md_seg(image_)
+    _, bbx_list, bbx_n_list, _, used_id, result = md_seg(image_)
     img_seg = get_segmentation(image_, used_id, result, inverted=True)
 
     # Initialize the model recognition

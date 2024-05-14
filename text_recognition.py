@@ -92,7 +92,7 @@ def model_recognition(model_name, smoothing=True, sm_kernel=(11,11)):
         elif model_name_split[0]=='YOLO':
             # Get the version of the yolo
             num_epoch = model_name_split[-1]
-            ck_name = path_pre_trained+'yolov8n-{}.pt'.format(num_epoch)
+            ck_name = path_pre_trained+'yolov8m-{}.pt'.format(num_epoch)
             
             for i in path:
                 # Initialize the model
