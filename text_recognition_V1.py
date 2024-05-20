@@ -54,7 +54,7 @@ def model_recognition(model_name, preprocessing=True, smoothing=True, sm_kernel=
         elif model_name_split[0]=='YOLO':
             # Get the version of the yolo
             num_epoch = model_name_split[-1]
-            ck_name = path_pre_trained+'yolov8m-{}.pt'.format(num_epoch)
+            ck_name = path_pre_trained+'yolov8n-{}.pt'.format(num_epoch)
 
             model = YOLO(ck_name)
             res = model(image)

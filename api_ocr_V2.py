@@ -66,18 +66,18 @@ def prediction_seg(image,
 
 def prediction_recog(image,
                      file_name,
-                     model_name={'YOLO_m_60': False, 'YOLO_n_100-plate2': True}, 
+                     model_list, 
                      smoothing=True, 
                      sm_kernel=(3,3)):
 
     data_json_list = []
 
-    for md_name, v in model_name.items():
+    for md_conf in model_list:
         # Inverted Image
-        type_image_input = md_name.split('-')
+        type_image_input = md_conf['model_name'].split('-')
 
         # Get status
-        flag_inverted = get_status_image(image, flag=v)
+        flag_inverted = get_status_image(image, flag=md_conf['status'])
         image = preprocessing_image(image, 
                                     inverted=flag_inverted, 
                                     normalize=False, 
@@ -85,7 +85,7 @@ def prediction_recog(image,
                                     sm_kernel=sm_kernel)
 
         # Initialize the model recognition
-        md_recog = model_recognition(model_name=md_name, preprocessing=False, smoothing=True, sm_kernel=sm_kernel)
+        md_recog = model_recognition(model_name=md_conf['model_name'], preprocessing=False, smoothing=True, sm_kernel=sm_kernel)
 
         y_pred, conf_list, bbx_list, bbx_n_list = md_recog.prediction(image)
         
@@ -175,9 +175,10 @@ async def segmentation_async(image: UploadFile = File(...), json_data: Optional[
 async def recognition_async(image: UploadFile = File(...), json_data: Optional[str] = Form(None)):
     file_name = image.filename
     image = load_image_into_numpy_array(await image.read())
-    md_dict = json.loads(json_data)
-
-    json_file = prediction_recog(image, file_name, model_name=md_dict)
+    md_list = json.loads(json_data)
+    md_list = sorted(md_list[0]['model_conf'], key=lambda d: d['id'])
+    
+    json_file = prediction_recog(image, file_name, model_list=md_list)
     
     return json_file
 

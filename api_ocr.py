@@ -296,4 +296,4 @@ async def segmentation_async(image: UploadFile = File(...)):
     return segmentation(image)   
 
 if __name__ == "__main__":
-    uvicorn.run("api_ocr:app", host="0.0.0.0", port=2803, workers = 4)
+    uvicorn.run("api_ocr:app", host="0.0.0.0", port=2803, reload=True)

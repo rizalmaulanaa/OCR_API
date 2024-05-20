@@ -355,4 +355,4 @@ async def recognition_async(image: UploadFile = File(...)):
     return json_file
 
 if __name__ == "__main__":
-    uvicorn.run("api_ocr_V1:app", host="0.0.0.0", port=2804, workers = 4)
+    uvicorn.run("api_ocr_V1:app", host="0.0.0.0", port=2803, reload=True)
